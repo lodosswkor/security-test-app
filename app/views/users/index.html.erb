@@ -1,0 +1,41 @@
+<div class="card">
+  <h2>회원 목록</h2>
+  <br>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>이메일</th>
+        <th>이름</th>
+        <th>관리자</th>
+        <th>가입일</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr>
+          <td><%= user.id %></td>
+          <td><%= user.email %></td>
+          <!-- [취약점] XSS - raw 사용으로 스크립트 실행 가능 -->
+          <td><%= raw user.name %></td>
+          <td><%= user.is_admin ? "✅" : "❌" %></td>
+          <td><%= user.created_at.strftime("%Y-%m-%d %H:%M") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>⚠️ 포함된 취약점 목록 (테스트용)</h3>
+  <br>
+  <ul>
+    <li><strong>SQL Injection</strong>: 로그인 시 <code>' OR '1'='1' --</code> 입력</li>
+    <li><strong>XSS (Stored)</strong>: 회원가입 시 이름에 <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code> 입력</li>
+    <li><strong>Mass Assignment</strong>: 회원가입 시 <code>is_admin=true</code> 파라미터 추가</li>
+    <li><strong>평문 비밀번호</strong>: DB에 비밀번호가 암호화 없이 저장됨</li>
+    <li><strong>CSRF 비활성화</strong>: 크로스 사이트 요청 위조 보호 없음</li>
+    <li><strong>인증 우회</strong>: 쿠키 조작으로 인증 우회 가능</li>
+  </ul>
+</div>

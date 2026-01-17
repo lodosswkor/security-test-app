@@ -1,0 +1,36 @@
+<div class="card">
+  <h2>회원가입</h2>
+  <br>
+
+  <!-- [취약점] Mass Assignment - is_admin=true 파라미터 추가 가능 -->
+  <!-- [취약점] XSS - name 필드에 스크립트 삽입 가능 -->
+  <%= form_with model: @user, url: users_path, local: true do |f| %>
+    <% if @user.errors.any? %>
+      <div class="alert alert-danger">
+        <% @user.errors.full_messages.each do |msg| %>
+          <p><%= msg %></p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="form-group">
+      <%= f.label :email, "이메일" %>
+      <%= f.email_field :email, placeholder: "이메일 입력" %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :name, "이름" %>
+      <%= f.text_field :name, placeholder: "이름 입력 (XSS 테스트: <script>alert('XSS')</script>)" %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :password, "비밀번호" %>
+      <%= f.password_field :password, placeholder: "비밀번호 입력" %>
+    </div>
+
+    <%= f.submit "가입하기", class: "btn" %>
+  <% end %>
+
+  <br>
+  <p>이미 계정이 있으신가요? <a href="/login">로그인</a></p>
+</div>

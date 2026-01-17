@@ -1,0 +1,2 @@
+# Development용 secret_key_base 설정
+Rails.application.config.secret_key_base = 'development_secret_key_base_for_testing_only_do_not_use_in_production_1234567890abcdef'
