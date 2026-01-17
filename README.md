@@ -1,8 +1,10 @@
-# Security Test App & Skills
+# Security Test App
 
 보안 점검 학습/테스트를 위한 취약점이 포함된 Ruby on Rails 웹 애플리케이션입니다.
 
-> **경고**: 이 애플리케이션은 교육 목적으로 의도적으로 보안 취약점을 포함하고 있습니다. 절대로 프로덕션 환경에서 사용하지 마세요.
+>  📁 Transcripts : <a href="https://lodosswkor.github.io/security-test-app/" target="_blank">https://lodosswkor.github.io/security-test-app/</a>  
+📁 Claude Code Agent/Skill 설계문서 markdown : <a href="agent_structure.md" target="_blank">agent_structure.md</a>   
+📁 참고문서 : <a href="https://www.kisa.or.kr/2060204/form?postSeq=5&lang_type=KO&page=1" target="_blank">소프트웨어 개발 보안 가이드</a>   
 
 ---
 
