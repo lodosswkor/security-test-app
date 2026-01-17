@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>화이트해커 블랙박스 테스트 Agent 설계 Transcript</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      color: white;
+      padding: 50px 20px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 15px;
+    }
+    header .meta {
+      opacity: 0.85;
+      font-size: 0.95rem;
+    }
+    header .meta span {
+      margin: 0 10px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .card h2 {
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #302b63;
+      color: #302b63;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card h3 {
+      font-size: 1.15rem;
+      margin: 24px 0 14px;
+      color: #444;
+    }
+    .card h4 {
+      font-size: 1.05rem;
+      margin: 18px 0 10px;
+      color: #555;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border: 1px solid #e0e0e0;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #444;
+    }
+    tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .quote {
+      background: linear-gradient(135deg, #667eea15, #764ba215);
+      border-left: 4px solid #667eea;
+      padding: 16px 20px;
+      margin: 16px 0;
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+    }
+    .architecture-diagram {
+      background: #1a1a2e;
+      color: #00ff88;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.5;
+    }
+    .yaml-block {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .yaml-block .key { color: #e06c75; }
+    .yaml-block .string { color: #98c379; }
+    .yaml-block .comment { color: #5c6370; }
+    code {
+      background: #f1f3f5;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+    .check-yes { color: #28a745; font-weight: bold; }
+    .check-partial { color: #ffc107; font-weight: bold; }
+    .check-no { color: #dc3545; font-weight: bold; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .badge-phase1 { background: #dc3545; color: white; }
+    .badge-phase2 { background: #fd7e14; color: white; }
+    .badge-phase3 { background: #ffc107; color: #333; }
+    .badge-phase4 { background: #28a745; color: white; }
+    .agent-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+      background: #fafbfc;
+    }
+    .agent-card h4 {
+      margin: 0 0 10px;
+      color: #302b63;
+    }
+    .file-tree {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+    .file-tree .folder { color: #dcdcaa; }
+    .file-tree .file { color: #9cdcfe; }
+    .file-tree .comment { color: #6a9955; }
+    .workflow {
+      background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .workflow-step {
+      display: flex;
+      align-items: flex-start;
+      margin: 12px 0;
+    }
+    .workflow-step .number {
+      background: #302b63;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+    .workflow-step .content {
+      flex: 1;
+    }
+    .workflow-step .title {
+      font-weight: 600;
+      color: #333;
+    }
+    .workflow-step .items {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    .warning-box {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .warning-box h4 {
+      color: #856404;
+      margin: 0 0 10px;
+    }
+    .warning-box ul {
+      margin-left: 20px;
+      color: #856404;
+    }
+    ul, ol {
+      margin-left: 24px;
+      margin-top: 8px;
+    }
+    li {
+      margin: 6px 0;
+    }
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    .toc {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .toc h3 {
+      margin: 0 0 12px;
+      color: #302b63;
+    }
+    .toc ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc li {
+      margin: 8px 0;
+    }
+    .toc a {
+      color: #302b63;
+      text-decoration: none;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>화이트해커 블랙박스 테스트 Agent 설계</h1>
+    <p class="meta">
+      <span>작성일: 2026-01-18</span>
+      <span>|</span>
+      <span>참조: 행정안전부 소프트웨어 개발보안 가이드 (2021.12.29)</span>
+    </p>
+  </header>
+
+  <div class="container">
+    <!-- 목차 -->
+    <div class="toc">
+      <h3>목차</h3>
+      <ul>
+        <li><a href="#request">1. 요청 사항</a></li>
+        <li><a href="#reference">2. 참조 문서 분석 결과</a></li>
+        <li><a href="#architecture">3. Agent 아키텍처 설계</a></li>
+        <li><a href="#mapping">4. 블랙박스 테스트 가능 취약점 매핑</a></li>
+        <li><a href="#skills">5. 핵심 Skills 정의</a></li>
+        <li><a href="#structure">6. 권장 파일 구조</a></li>
+        <li><a href="#workflow">7. 테스트 워크플로우</a></li>
+        <li><a href="#priority">8. 구현 우선순위</a></li>
+        <li><a href="#caution">9. 주의사항</a></li>
+      </ul>
+    </div>
+
+    <!-- 요청 사항 -->
+    <div class="card" id="request">
+      <h2>📋 요청 사항</h2>
+      <div class="quote">
+        보안점검 전문가로, 블랙박스 테스트를 진행하는 '화이트해커' 전문 Claude Code용 Agent(s)를 만들고 싶어.
+        외부에서 테스트하는 화이트해커이기 때문에, DB 내부나 인프라적인 것들을 제외하고 순수하게 '모의해킹'을 통해
+        취약점을 검출하고 그 결과 및 권장처리 방법을 문서화해야 해.
+      </div>
+    </div>
+
+    <!-- 참조 문서 분석 -->
+    <div class="card" id="reference">
+      <h2>📚 참조 문서 분석 결과</h2>
+
+      <h3>행정안전부 소프트웨어 개발보안 가이드 핵심 내용</h3>
+
+      <h4>적용 기준</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>항목 수</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>설계단계 보안설계 기준</td>
+            <td>20개</td>
+            <td>SR1-1 ~ SR4-1</td>
+          </tr>
+          <tr>
+            <td>구현단계 보안약점 제거 기준</td>
+            <td>49개</td>
+            <td>7대 분류</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>구현단계 7대 보안약점 분류</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>분류</th>
+            <th>항목 수</th>
+            <th>주요 취약점</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. 입력데이터 검증 및 표현</td>
+            <td>17개</td>
+            <td>SQL 삽입, XSS, 명령어 삽입, 파일 업로드 등</td>
+          </tr>
+          <tr>
+            <td>2. 보안기능</td>
+            <td>16개</td>
+            <td>인증 우회, 암호화, 접근제어 등</td>
+          </tr>
+          <tr>
+            <td>3. 시간 및 상태</td>
+            <td>2개</td>
+            <td>TOCTOU, 무한 반복</td>
+          </tr>
+          <tr>
+            <td>4. 에러처리</td>
+            <td>3개</td>
+            <td>오류 메시지 노출, 예외 처리</td>
+          </tr>
+          <tr>
+            <td>5. 코드오류</td>
+            <td>5개</td>
+            <td>Null Pointer, 자원 해제, 역직렬화</td>
+          </tr>
+          <tr>
+            <td>6. 캡슐화</td>
+            <td>4개</td>
+            <td>세션 정보 노출, 디버그 코드</td>
+          </tr>
+          <tr>
+            <td>7. API 오용</td>
+            <td>2개</td>
+            <td>DNS lookup, 취약한 API</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Agent 아키텍처 -->
+    <div class="card" id="architecture">
+      <h2>🤖 Agent 아키텍처 설계</h2>
+
+      <h3>전체 구조도</h3>
+      <div class="architecture-diagram">┌─────────────────────────────────────────────────────────────┐
+│                    Main Orchestrator Agent                   │
+│              (전체 테스트 계획 및 조율, 리포트 생성)            │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+    ┌─────────────────────┼─────────────────────┐
+    │                     │                     │
+    ▼                     ▼                     ▼
+┌─────────┐         ┌─────────┐          ┌─────────┐
+│ Recon   │         │ Scanner │          │ Reporter│
+│ Agent   │         │ Agents  │          │ Agent   │
+└────┬────┘         └────┬────┘          └────┬────┘
+     │                   │                    │
+     ▼                   ▼                    ▼
+┌─────────┐    ┌─────────────────┐    ┌─────────────┐
+│정보수집 │    │취약점 스캔/검증  │    │ 보고서 생성  │
+│Skills   │    │    Skills       │    │   Skills    │
+└─────────┘    └─────────────────┘    └─────────────┘</div>
+
+      <h3>Agent 정의</h3>
+
+      <div class="agent-card">
+        <h4>1. Orchestrator Agent (총괄)</h4>
+        <table>
+          <tr>
+            <th width="100">역할</th>
+            <td>전체 테스트 워크플로우 조율</td>
+          </tr>
+          <tr>
+            <th>기능</th>
+            <td>대상 URL 검증, 에이전트 호출, 취약점 우선순위 결정, 상태 관리</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="agent-card">
+        <h4>2. Reconnaissance Agent (정보수집)</h4>
+        <table>
+          <tr>
+            <th width="100">역할</th>
+            <td>대상 시스템 정보 수집</td>
+          </tr>
+          <tr>
+            <th>Skills</th>
+            <td>tech_stack_fingerprint, directory_enumeration, input_point_mapping, api_endpoint_discovery, error_page_analysis</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="agent-card">
+        <h4>3. Scanner Agents (취약점 스캔) - 4개</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>대상</th>
+              <th>주요 테스트 항목</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Input Validation Scanner</strong></td>
+              <td>입력데이터 검증 (17개)</td>
+              <td>SQL Injection, XSS, Command Injection, File Upload, CSRF, SSRF 등</td>
+            </tr>
+            <tr>
+              <td><strong>Security Function Scanner</strong></td>
+              <td>보안기능 (16개)</td>
+              <td>인증 우회, 접근제어, 암호화 강도, 세션 토큰 분석 등</td>
+            </tr>
+            <tr>
+              <td><strong>Error Handling Scanner</strong></td>
+              <td>에러처리 (3개)</td>
+              <td>에러 메시지 노출, 스택 트레이스, 디버그 정보</td>
+            </tr>
+            <tr>
+              <td><strong>Session Management Scanner</strong></td>
+              <td>세션통제</td>
+              <td>세션 예측, 세션 고정, 세션 만료</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="agent-card">
+        <h4>4. Reporter Agent (리포팅)</h4>
+        <table>
+          <tr>
+            <th width="100">역할</th>
+            <td>취약점 결과 종합 및 보고서 생성</td>
+          </tr>
+          <tr>
+            <th>출력</th>
+            <td>경영진 요약, 기술 상세 보고서, 권장 조치사항, CVSS 점수</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 블랙박스 테스트 가능 취약점 매핑 -->
+    <div class="card" id="mapping">
+      <h2>📊 블랙박스 테스트 가능 취약점 매핑</h2>
+
+      <h3>입력데이터 검증 및 표현 (17개 중 14개 테스트 가능)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>취약점</th>
+            <th>블랙박스</th>
+            <th>테스트 방법</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>SQL 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>Error-based, Blind, Time-based</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>코드 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>동적 코드 실행 테스트</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>경로 조작 및 자원 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>../../../ 패턴</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>크로스사이트 스크립트(XSS)</td>
+            <td class="check-yes">✅</td>
+            <td>Reflected, Stored, DOM</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>운영체제 명령어 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>; | && 등 메타문자</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>위험한 형식 파일 업로드</td>
+            <td class="check-yes">✅</td>
+            <td>확장자 우회, Content-Type 조작</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>신뢰되지 않는 URL 자동접속</td>
+            <td class="check-yes">✅</td>
+            <td>Open Redirect 테스트</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>부적절한 XML 외부 개체 참조</td>
+            <td class="check-yes">✅</td>
+            <td>XXE Payload</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>XML 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>XPath/XQuery Injection</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>LDAP 삽입</td>
+            <td class="check-yes">✅</td>
+            <td>LDAP 특수문자 삽입</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>크로스사이트 요청 위조(CSRF)</td>
+            <td class="check-yes">✅</td>
+            <td>토큰 검증 테스트</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>서버사이드 요청 위조(SSRF)</td>
+            <td class="check-yes">✅</td>
+            <td>내부 서버 접근 시도</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>HTTP 응답분할</td>
+            <td class="check-yes">✅</td>
+            <td>CRLF Injection</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>정수형 오버플로우</td>
+            <td class="check-partial">⚠️</td>
+            <td>제한적 테스트</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>보안기능 결정에 사용되는 부적절한 입력값</td>
+            <td class="check-yes">✅</td>
+            <td>파라미터 조작</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>메모리 버퍼 오버플로우</td>
+            <td class="check-partial">⚠️</td>
+            <td>제한적</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>포맷 스트링 삽입</td>
+            <td class="check-partial">⚠️</td>
+            <td>제한적</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>보안기능 (16개 중 12개 테스트 가능)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>취약점</th>
+            <th>블랙박스</th>
+            <th>테스트 방법</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>적절한 인증 없는 중요기능 허용</td>
+            <td class="check-yes">✅</td>
+            <td>직접 URL 접근</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>부적절한 인가</td>
+            <td class="check-yes">✅</td>
+            <td>권한 상승 테스트</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>중요 자원에 대한 잘못된 권한 설정</td>
+            <td class="check-yes">✅</td>
+            <td>다른 사용자 자원 접근</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>취약한 암호화 알고리즘 사용</td>
+            <td class="check-yes">✅</td>
+            <td>SSL/TLS 분석</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>암호화되지 않은 중요정보</td>
+            <td class="check-yes">✅</td>
+            <td>전송 데이터 분석</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>하드코드된 중요정보</td>
+            <td class="check-partial">⚠️</td>
+            <td>JS/HTML 소스 분석</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>충분하지 않은 키 길이 사용</td>
+            <td class="check-yes">✅</td>
+            <td>SSL/TLS 분석</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>적절하지 않은 난수값 사용</td>
+            <td class="check-yes">✅</td>
+            <td>세션/토큰 패턴 분석</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>취약한 비밀번호 허용</td>
+            <td class="check-yes">✅</td>
+            <td>약한 비밀번호 등록 시도</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>부적절한 전자서명 확인</td>
+            <td class="check-partial">⚠️</td>
+            <td>제한적</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>부적절한 인증서 유효성 검증</td>
+            <td class="check-yes">✅</td>
+            <td>인증서 검증</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>쿠키를 통한 정보노출</td>
+            <td class="check-yes">✅</td>
+            <td>쿠키 속성 분석</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>주석문 안에 포함된 시스템 주요정보</td>
+            <td class="check-yes">✅</td>
+            <td>HTML 소스 분석</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>솔트 없이 일방향 해쉬함수 사용</td>
+            <td class="check-partial">⚠️</td>
+            <td>제한적</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>무결성 검사 없는 코드 다운로드</td>
+            <td class="check-yes">✅</td>
+            <td>다운로드 분석</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>반복된 인증시도 제한 기능 부재</td>
+            <td class="check-yes">✅</td>
+            <td>Brute Force 테스트</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 핵심 Skills 정의 -->
+    <div class="card" id="skills">
+      <h2>🔧 핵심 Skills 정의</h2>
+
+      <h3>Skill 1: SQL Injection Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">sql_injection_test</span>
+<span class="key">category:</span> <span class="string">입력데이터 검증 및 표현</span>
+<span class="key">reference:</span> <span class="string">SR1-1 DBMS 조회 및 결과 검증</span>
+
+<span class="key">test_vectors:</span>
+  - <span class="string">"' OR '1'='1"</span>
+  - <span class="string">"1; DROP TABLE--"</span>
+  - <span class="string">"' UNION SELECT NULL--"</span>
+  - <span class="string">"1' AND SLEEP(5)--"</span>
+
+<span class="key">detection_methods:</span>
+  - <span class="key">error_based:</span> <span class="string">"SQL 에러 메시지 탐지"</span>
+  - <span class="key">blind_boolean:</span> <span class="string">"참/거짓 응답 차이 분석"</span>
+  - <span class="key">blind_time:</span> <span class="string">"응답 시간 차이 분석"</span>
+  - <span class="key">union_based:</span> <span class="string">"UNION 쿼리 응답 분석"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"PreparedStatement 또는 파라미터화된 쿼리 사용"</span>
+  - <span class="string">"입력값 검증 및 이스케이프 처리"</span>
+  - <span class="string">"최소 권한 DB 계정 사용"</span></div>
+
+      <h3>Skill 2: XSS Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">xss_test</span>
+<span class="key">category:</span> <span class="string">입력데이터 검증 및 표현</span>
+<span class="key">reference:</span> <span class="string">SR1-5 웹 서비스 요청 및 결과 검증</span>
+
+<span class="key">test_vectors:</span>
+  - <span class="string">"&lt;script&gt;alert('XSS')&lt;/script&gt;"</span>
+  - <span class="string">"&lt;img src=x onerror=alert('XSS')&gt;"</span>
+  - <span class="string">"javascript:alert('XSS')"</span>
+  - <span class="string">"&lt;svg onload=alert('XSS')&gt;"</span>
+
+<span class="key">detection_methods:</span>
+  - <span class="key">reflected:</span> <span class="string">"입력값이 응답에 그대로 반영"</span>
+  - <span class="key">stored:</span> <span class="string">"저장된 데이터가 실행"</span>
+  - <span class="key">dom_based:</span> <span class="string">"DOM 조작 스크립트 실행"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"HTML 인코딩/이스케이프 처리"</span>
+  - <span class="string">"Content-Security-Policy 헤더 설정"</span>
+  - <span class="string">"입력값 화이트리스트 검증"</span></div>
+
+      <h3>Skill 3: Authentication Bypass Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">authentication_bypass_test</span>
+<span class="key">category:</span> <span class="string">보안기능</span>
+<span class="key">reference:</span> <span class="string">SR2-1 인증 대상 및 방식</span>
+
+<span class="key">test_methods:</span>
+  - <span class="key">direct_url_access:</span> <span class="string">"인증 없이 URL 직접 접근"</span>
+  - <span class="key">parameter_manipulation:</span> <span class="string">"인증 파라미터 조작"</span>
+  - <span class="key">cookie_manipulation:</span> <span class="string">"쿠키 값 조작"</span>
+  - <span class="key">jwt_token_attack:</span> <span class="string">"JWT 토큰 취약점"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"모든 중요 페이지에 서버측 인증 확인"</span>
+  - <span class="string">"세션 기반 인증 상태 검증"</span>
+  - <span class="string">"안전한 토큰 검증 메커니즘"</span></div>
+
+      <h3>Skill 4: File Upload Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">file_upload_test</span>
+<span class="key">category:</span> <span class="string">입력데이터 검증 및 표현</span>
+<span class="key">reference:</span> <span class="string">SR1-10 업로드·다운로드 파일 검증</span>
+
+<span class="key">test_methods:</span>
+  - <span class="key">extension_bypass:</span> <span class="string">"test.php.jpg, test.pHp"</span>
+  - <span class="key">content_type_bypass:</span> <span class="string">"Content-Type 헤더 조작"</span>
+  - <span class="key">magic_byte_bypass:</span> <span class="string">"매직 바이트 조작"</span>
+  - <span class="key">null_byte:</span> <span class="string">"test.php%00.jpg"</span>
+
+<span class="key">dangerous_extensions:</span>
+  - <span class="string">".php, .jsp, .asp, .aspx"</span>
+  - <span class="string">".exe, .sh, .bat"</span>
+  - <span class="string">".htaccess"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"화이트리스트 기반 확장자 검증"</span>
+  - <span class="string">"파일 내용(매직 바이트) 검증"</span>
+  - <span class="string">"업로드 디렉토리 실행 권한 제거"</span>
+  - <span class="string">"파일명 랜덤화"</span></div>
+
+      <h3>Skill 5: CSRF Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">csrf_test</span>
+<span class="key">category:</span> <span class="string">입력데이터 검증 및 표현</span>
+<span class="key">reference:</span> <span class="string">SR1-6 웹 기반 중요 기능 수행 요청 유효성 검증</span>
+
+<span class="key">test_methods:</span>
+  - <span class="key">token_absence:</span> <span class="string">"CSRF 토큰 존재 여부"</span>
+  - <span class="key">token_validation:</span> <span class="string">"토큰 검증 로직"</span>
+  - <span class="key">referer_check:</span> <span class="string">"Referer 헤더 검증"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"CSRF 토큰 구현"</span>
+  - <span class="string">"SameSite 쿠키 속성 설정"</span>
+  - <span class="string">"중요 기능에 재인증 요구"</span></div>
+
+      <h3>Skill 6: Session Security Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">session_security_test</span>
+<span class="key">category:</span> <span class="string">세션통제</span>
+<span class="key">reference:</span> <span class="string">SR4-1 세션통제</span>
+
+<span class="key">test_methods:</span>
+  - <span class="key">session_prediction:</span> <span class="string">"세션 ID 예측 가능성"</span>
+  - <span class="key">session_fixation:</span> <span class="string">"세션 고정 공격"</span>
+  - <span class="key">session_timeout:</span> <span class="string">"세션 만료 시간"</span>
+  - <span class="key">concurrent_sessions:</span> <span class="string">"동시 세션 허용"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"로그인 시 세션 ID 재생성"</span>
+  - <span class="string">"안전한 세션 ID 생성 알고리즘"</span>
+  - <span class="string">"세션 타임아웃 설정"</span>
+  - <span class="string">"HttpOnly, Secure 쿠키 속성"</span></div>
+
+      <h3>Skill 7: Error Disclosure Test</h3>
+      <div class="yaml-block">
+<span class="key">skill_name:</span> <span class="string">error_disclosure_test</span>
+<span class="key">category:</span> <span class="string">에러처리</span>
+<span class="key">reference:</span> <span class="string">SR3-1 예외처리</span>
+
+<span class="key">test_methods:</span>
+  - <span class="key">invalid_input:</span> <span class="string">"비정상 입력으로 에러 유발"</span>
+  - <span class="key">missing_parameter:</span> <span class="string">"필수 파라미터 제거"</span>
+  - <span class="key">sql_error_trigger:</span> <span class="string">"SQL 문법 오류 유발"</span>
+
+<span class="key">check_items:</span>
+  - <span class="string">"스택 트레이스 노출"</span>
+  - <span class="string">"DB 정보 노출"</span>
+  - <span class="string">"서버 경로 노출"</span>
+  - <span class="string">"프레임워크/버전 정보 노출"</span>
+
+<span class="key">remediation:</span>
+  - <span class="string">"사용자 정의 에러 페이지 구현"</span>
+  - <span class="string">"상세 에러 로깅은 서버측에서만"</span>
+  - <span class="string">"일반적인 에러 메시지만 클라이언트에 전달"</span></div>
+    </div>
+
+    <!-- 권장 파일 구조 -->
+    <div class="card" id="structure">
+      <h2>🗂️ 권장 파일 구조</h2>
+      <div class="file-tree"><span class="folder">/mnt/skills/user/whitehacker/</span>
+├── <span class="file">SKILL.md</span>                          <span class="comment"># 메인 스킬 가이드</span>
+├── <span class="folder">agents/</span>
+│   ├── <span class="file">orchestrator.md</span>               <span class="comment"># 총괄 에이전트</span>
+│   ├── <span class="file">reconnaissance.md</span>             <span class="comment"># 정보수집 에이전트</span>
+│   ├── <span class="file">input_validation_scanner.md</span>   <span class="comment"># 입력값 검증 스캐너</span>
+│   ├── <span class="file">security_function_scanner.md</span>  <span class="comment"># 보안기능 스캐너</span>
+│   ├── <span class="file">error_handling_scanner.md</span>     <span class="comment"># 에러처리 스캐너</span>
+│   ├── <span class="file">session_scanner.md</span>            <span class="comment"># 세션관리 스캐너</span>
+│   └── <span class="file">reporter.md</span>                   <span class="comment"># 리포터 에이전트</span>
+├── <span class="folder">payloads/</span>
+│   ├── <span class="file">sql_injection.txt</span>             <span class="comment"># SQL 인젝션 페이로드</span>
+│   ├── <span class="file">xss.txt</span>                       <span class="comment"># XSS 페이로드</span>
+│   ├── <span class="file">command_injection.txt</span>         <span class="comment"># 명령어 삽입 페이로드</span>
+│   ├── <span class="file">path_traversal.txt</span>            <span class="comment"># 경로 조작 페이로드</span>
+│   └── <span class="file">file_upload_bypass.txt</span>        <span class="comment"># 파일 업로드 우회</span>
+├── <span class="folder">templates/</span>
+│   ├── <span class="file">report_template.md</span>            <span class="comment"># 보고서 템플릿</span>
+│   ├── <span class="file">vulnerability_template.md</span>     <span class="comment"># 취약점 상세 템플릿</span>
+│   └── <span class="file">remediation_template.md</span>       <span class="comment"># 권장조치 템플릿</span>
+├── <span class="folder">reference/</span>
+│   ├── <span class="file">kisa_security_guide.md</span>        <span class="comment"># 행정안전부 가이드 요약</span>
+│   ├── <span class="file">owasp_mapping.md</span>              <span class="comment"># OWASP Top 10 매핑</span>
+│   └── <span class="file">cvss_scoring.md</span>               <span class="comment"># CVSS 점수 기준</span>
+└── <span class="folder">utils/</span>
+    ├── <span class="file">http_client.py</span>                <span class="comment"># HTTP 요청 유틸리티</span>
+    ├── <span class="file">response_analyzer.py</span>          <span class="comment"># 응답 분석기</span>
+    └── <span class="file">evidence_collector.py</span>         <span class="comment"># 증거 수집기</span></div>
+    </div>
+
+    <!-- 테스트 워크플로우 -->
+    <div class="card" id="workflow">
+      <h2>📈 테스트 워크플로우</h2>
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="number">1</div>
+          <div class="content">
+            <div class="title">초기화 단계</div>
+            <div class="items">대상 URL 검증 → 테스트 범위 설정 → 필요 에이전트 로드</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="number">2</div>
+          <div class="content">
+            <div class="title">정보수집 단계 (Reconnaissance Agent)</div>
+            <div class="items">기술 스택 식별 → 입력 포인트 매핑 → API 엔드포인트 수집</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="number">3</div>
+          <div class="content">
+            <div class="title">취약점 스캔 단계 (Scanner Agents)</div>
+            <div class="items">입력값 검증 테스트 → 보안기능 테스트 → 에러처리 테스트 → 세션관리 테스트</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="number">4</div>
+          <div class="content">
+            <div class="title">검증 단계</div>
+            <div class="items">False Positive 제거 → 취약점 재현 확인</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="number">5</div>
+          <div class="content">
+            <div class="title">리포팅 단계 (Reporter Agent)</div>
+            <div class="items">취약점 분류 및 우선순위 → 보고서 생성 → 권장 조치사항 작성</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 구현 우선순위 -->
+    <div class="card" id="priority">
+      <h2>🎯 구현 우선순위</h2>
+
+      <h3><span class="badge badge-phase1">Phase 1</span> 핵심 취약점 스캐너 (우선 구현)</h3>
+      <ol>
+        <li>SQL Injection Test Skill</li>
+        <li>XSS Test Skill</li>
+        <li>Authentication Test Skill</li>
+        <li>File Upload Test Skill</li>
+      </ol>
+
+      <h3><span class="badge badge-phase2">Phase 2</span> 보안기능 스캐너</h3>
+      <ol start="5">
+        <li>Session Security Test Skill</li>
+        <li>CSRF Test Skill</li>
+        <li>Access Control Test Skill</li>
+        <li>Brute Force Test Skill</li>
+      </ol>
+
+      <h3><span class="badge badge-phase3">Phase 3</span> 보조 스캐너</h3>
+      <ol start="9">
+        <li>Error Disclosure Test Skill</li>
+        <li>SSL/TLS Analysis Skill</li>
+        <li>HTTP Header Security Skill</li>
+        <li>Information Leakage Test Skill</li>
+      </ol>
+
+      <h3><span class="badge badge-phase4">Phase 4</span> 리포팅 및 자동화</h3>
+      <ol start="13">
+        <li>Report Generator Skill</li>
+        <li>Evidence Collector Skill</li>
+        <li>Orchestrator Agent 완성</li>
+      </ol>
+    </div>
+
+    <!-- 주의사항 -->
+    <div class="card" id="caution">
+      <h2>⚠️ 주의사항</h2>
+      <div class="warning-box">
+        <h4>법적/윤리적 고려사항</h4>
+        <ul>
+          <li><strong>법적 고려</strong>: 반드시 테스트 대상 시스템 소유자의 사전 동의 필요</li>
+          <li><strong>범위 제한</strong>: 합의된 범위 내에서만 테스트 수행</li>
+          <li><strong>데이터 보호</strong>: 수집된 정보의 안전한 관리</li>
+          <li><strong>영향 최소화</strong>: 시스템 가용성에 영향을 주지 않도록 주의</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 참고 기준 -->
+    <div class="card">
+      <h2>📚 참고 기준</h2>
+      <ul>
+        <li>행정안전부 소프트웨어 개발보안 가이드 (2021.11)</li>
+        <li>OWASP Top 10 (2021)</li>
+        <li>CWE/SANS Top 25</li>
+        <li>CVSS v3.1 점수 체계</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>Security Checker Agent Design Document | Generated 2026-01-18</p>
+  </footer>
+</body>
+</html>

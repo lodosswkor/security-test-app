@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보안 취약점 분석 보고서 - 2026-01-18</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    header .subtitle {
+      opacity: 0.8;
+      font-size: 1rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #eee;
+      color: #1a1a2e;
+    }
+    .card h3 {
+      font-size: 1.1rem;
+      margin: 20px 0 12px;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #555;
+    }
+    tr:hover {
+      background: #fafbfc;
+    }
+    .severity-critical {
+      background: #dc3545;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .severity-high {
+      background: #fd7e14;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .severity-medium {
+      background: #ffc107;
+      color: #333;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .vulnerability-item {
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .vulnerability-item h3 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 16px;
+    }
+    .vulnerability-item .location {
+      background: #e9ecef;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .vulnerability-item .payload {
+      background: #1a1a2e;
+      color: #00ff88;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .vulnerability-item .evidence {
+      background: #f8f9fa;
+      border-left: 4px solid #007bff;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.85rem;
+    }
+    .vulnerability-item .result {
+      color: #28a745;
+      font-weight: 500;
+    }
+    .recommendation {
+      background: #e8f5e9;
+      border-left: 4px solid #28a745;
+      padding: 12px 16px;
+      margin-top: 12px;
+      border-radius: 0 6px 6px 0;
+    }
+    .recommendation strong {
+      color: #28a745;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .summary-item {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .summary-item.critical {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    .summary-item.high {
+      background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+    }
+    .summary-item.medium {
+      background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%);
+    }
+    .summary-item .count {
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    .summary-item .label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    .info-table td:first-child {
+      font-weight: 600;
+      color: #555;
+      width: 150px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .badge-guide {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    code {
+      background: #f1f3f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔓 보안 취약점 분석 보고서</h1>
+    <p class="subtitle">Security Test App - 블랙박스 모의해킹 결과</p>
+  </header>
+
+  <div class="container">
+    <!-- 대상 시스템 정보 -->
+    <div class="card">
+      <h2>📋 대상 시스템 정보</h2>
+      <table class="info-table">
+        <tr>
+          <td>URL</td>
+          <td><code>http://localhost:3000</code></td>
+        </tr>
+        <tr>
+          <td>기술 스택</td>
+          <td>Ruby on Rails 7.1 / PostgreSQL 15</td>
+        </tr>
+        <tr>
+          <td>테스트 일시</td>
+          <td>2026-01-18</td>
+        </tr>
+        <tr>
+          <td>테스트 유형</td>
+          <td>블랙박스 모의해킹 (Black-box Penetration Testing)</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 취약점 요약 -->
+    <div class="card">
+      <h2>📊 취약점 요약</h2>
+      <div class="summary-grid">
+        <div class="summary-item critical">
+          <div class="count">2</div>
+          <div class="label">Critical</div>
+        </div>
+        <div class="summary-item high">
+          <div class="count">2</div>
+          <div class="label">High</div>
+        </div>
+        <div class="summary-item medium">
+          <div class="count">1</div>
+          <div class="label">Medium</div>
+        </div>
+        <div class="summary-item">
+          <div class="count">5</div>
+          <div class="label">총 발견</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>취약점</th>
+            <th>심각도</th>
+            <th>CVSS</th>
+            <th>행정안전부 가이드</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>SQL Injection</td>
+            <td><span class="severity-critical">Critical</span></td>
+            <td>9.8</td>
+            <td><span class="badge badge-guide">입력데이터 검증 및 표현</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Stored XSS</td>
+            <td><span class="severity-high">High</span></td>
+            <td>8.1</td>
+            <td><span class="badge badge-guide">입력데이터 검증 및 표현</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Mass Assignment</td>
+            <td><span class="severity-high">High</span></td>
+            <td>8.8</td>
+            <td><span class="badge badge-guide">보안기능 - 부적절한 인가</span></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>CSRF 보호 비활성화</td>
+            <td><span class="severity-medium">Medium</span></td>
+            <td>6.5</td>
+            <td><span class="badge badge-guide">보안기능 - CSRF</span></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>인증 우회 (쿠키 조작)</td>
+            <td><span class="severity-critical">Critical</span></td>
+            <td>9.1</td>
+            <td><span class="badge badge-guide">보안기능 - 적절한 인증 없는 중요기능 허용</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 상세 분석 -->
+    <div class="card">
+      <h2>🔍 상세 분석</h2>
+
+      <!-- SQL Injection -->
+      <div class="vulnerability-item">
+        <h3>
+          <span class="severity-critical">Critical</span>
+          1. SQL Injection
+        </h3>
+        <div class="location">
+          <strong>위치:</strong> POST /login
+        </div>
+        <p><strong>설명:</strong> 로그인 폼의 email 필드에서 SQL 구문이 그대로 실행되어 인증을 우회할 수 있습니다.</p>
+
+        <div class="payload">
+email=test@example.com' OR '1'='1&password=wrong
+        </div>
+
+        <p class="result">✅ 결과: 비밀번호 검증 없이 로그인 성공 (302 → /users)</p>
+
+        <div class="evidence">
+HTTP/1.1 302 Found<br>
+location: http://localhost:3000/users<br>
+set-cookie: remember_token=5; path=/
+        </div>
+
+        <div class="recommendation">
+          <strong>권고:</strong> Prepared Statement 또는 Parameterized Query를 사용하여 SQL 쿼리를 안전하게 처리하세요.
+        </div>
+      </div>
+
+      <!-- Stored XSS -->
+      <div class="vulnerability-item">
+        <h3>
+          <span class="severity-high">High</span>
+          2. Stored XSS (Cross-Site Scripting)
+        </h3>
+        <div class="location">
+          <strong>위치:</strong> POST /users (회원가입) → GET /users (회원목록)
+        </div>
+        <p><strong>설명:</strong> 회원가입 시 이름 필드에 스크립트를 삽입하면 회원 목록 페이지에서 스크립트가 실행됩니다.</p>
+
+        <div class="payload">
+user[name]=&lt;script&gt;alert('XSS')&lt;/script&gt;
+        </div>
+
+        <p class="result">✅ 결과: 스크립트가 필터링 없이 HTML에 렌더링됨</p>
+
+        <div class="evidence">
+&lt;td&gt;&lt;script&gt;alert('XSS')&lt;/script&gt;&lt;/td&gt;
+        </div>
+
+        <div class="recommendation">
+          <strong>권고:</strong> 출력 시 HTML 이스케이프를 적용하세요. Rails에서 <code>raw</code> 또는 <code>html_safe</code> 대신 기본 출력을 사용하세요.
+        </div>
+      </div>
+
+      <!-- Mass Assignment -->
+      <div class="vulnerability-item">
+        <h3>
+          <span class="severity-high">High</span>
+          3. Mass Assignment (권한 상승)
+        </h3>
+        <div class="location">
+          <strong>위치:</strong> POST /users
+        </div>
+        <p><strong>설명:</strong> 회원가입 시 숨겨진 파라미터 <code>is_admin=true</code>를 추가하면 관리자 권한을 획득할 수 있습니다.</p>
+
+        <div class="payload">
+user[email]=test@example.com&user[name]=Test&user[password]=test&user[is_admin]=true
+        </div>
+
+        <p class="result">✅ 결과: 일반 사용자가 관리자 권한 획득</p>
+
+        <div class="evidence">
+&lt;td&gt;AdminTest&lt;/td&gt;<br>
+&lt;td&gt;✅&lt;/td&gt; &lt;!-- 관리자 표시 --&gt;
+        </div>
+
+        <div class="recommendation">
+          <strong>권고:</strong> Strong Parameters에서 <code>is_admin</code> 같은 민감한 필드를 명시적으로 제외하세요.
+        </div>
+      </div>
+
+      <!-- CSRF -->
+      <div class="vulnerability-item">
+        <h3>
+          <span class="severity-medium">Medium</span>
+          4. CSRF 보호 비활성화
+        </h3>
+        <div class="location">
+          <strong>위치:</strong> 모든 POST 요청
+        </div>
+        <p><strong>설명:</strong> CSRF(Cross-Site Request Forgery) 토큰 검증이 비활성화되어 있어 외부 사이트에서 요청을 위조할 수 있습니다.</p>
+
+        <div class="payload">
+# authenticity_token 없이 요청<br>
+curl -X POST http://localhost:3000/users -d "user[email]=csrf@test.com..."
+        </div>
+
+        <p class="result">✅ 결과: CSRF 토큰 없이 요청 처리됨</p>
+
+        <div class="evidence">
+HTTP/1.1 302 Found (회원가입 성공)
+        </div>
+
+        <div class="recommendation">
+          <strong>권고:</strong> <code>protect_from_forgery with: :exception</code>을 활성화하세요.
+        </div>
+      </div>
+
+      <!-- 인증 우회 -->
+      <div class="vulnerability-item">
+        <h3>
+          <span class="severity-critical">Critical</span>
+          5. 인증 우회 (쿠키 조작)
+        </h3>
+        <div class="location">
+          <strong>위치:</strong> remember_token 쿠키
+        </div>
+        <p><strong>설명:</strong> 세션 토큰이 단순 사용자 ID로 설정되어 있어 쿠키 값만 변경하면 다른 사용자로 로그인할 수 있습니다.</p>
+
+        <div class="payload">
+Cookie: remember_token=1  # 또는 다른 사용자 ID
+        </div>
+
+        <p class="result">✅ 결과: 해당 ID의 사용자로 인증됨</p>
+
+        <div class="evidence">
+remember_token=1 → 회원 목록 접근 성공<br>
+remember_token=2 → 다른 사용자로 접근 성공
+        </div>
+
+        <div class="recommendation">
+          <strong>권고:</strong> 암호화된 세션 토큰을 사용하고, <code>httponly</code>와 <code>secure</code> 플래그를 설정하세요.
+        </div>
+      </div>
+    </div>
+
+    <!-- 권고사항 요약 -->
+    <div class="card">
+      <h2>✅ 권고사항 요약</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>취약점</th>
+            <th>권고 조치</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SQL Injection</td>
+            <td>Prepared Statement / Parameterized Query 사용</td>
+          </tr>
+          <tr>
+            <td>Stored XSS</td>
+            <td>출력 시 HTML 이스케이프 (<code>raw</code> 대신 기본 출력)</td>
+          </tr>
+          <tr>
+            <td>Mass Assignment</td>
+            <td>Strong Parameters에서 민감 필드 제외</td>
+          </tr>
+          <tr>
+            <td>CSRF</td>
+            <td><code>protect_from_forgery</code> 활성화</td>
+          </tr>
+          <tr>
+            <td>인증 우회</td>
+            <td>암호화된 세션 토큰 + httponly/secure 플래그</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 참고 기준 -->
+    <div class="card">
+      <h2>📚 참고 기준</h2>
+      <ul style="margin-left: 20px;">
+        <li>행정안전부 소프트웨어 개발보안 가이드 (2021.12.29)</li>
+        <li>OWASP Top 10 (2021)</li>
+        <li>CVSS v3.1</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>Generated by Security Checker Agent | 2026-01-18</p>
+  </footer>
+</body>
+</html>

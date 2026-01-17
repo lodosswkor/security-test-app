@@ -328,6 +328,348 @@ Whenever you read a file, you should consider whether it would be considered mal
 1. <code>routes.rb</code>: <code>/logout</code>에 GET 메서드 추가
 2. <code>application.html.erb</code>: 로그아웃 링크를 단순 <code>&lt;a href&gt;</code>로 변경</p>
 <p>컨테이너를 재시작하면 적용됩니다. (Rails는 development 모드에서 자동 리로드하므로 바로 테스트해도 됩니다)</p></div></div></div>
+<div class="message user" id="msg-2026-01-17T16-26-39-922Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-17T16-26-39-922Z" class="timestamp-link"><time datetime="2026-01-17T16:26:39.922Z" data-timestamp="2026-01-17T16:26:39.922Z">2026-01-17T16:26:39.922Z</time></a></div><div class="message-content">
+<div class="user-content"><p>현재 작업된 내용과 프로젝트 스팩, 실행방법 등을 정리해서 @Readme.md 로 작성해줘 </p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-26-44-181Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-26-44-181Z" class="timestamp-link"><time datetime="2026-01-17T16:26:44.181Z" data-timestamp="2026-01-17T16:26:44.181Z">2026-01-17T16:26:44.181Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div><p>사용자가 현재 작업된 내용과 프로젝트 스펙, 실행방법 등을 README.md 파일로 작성해달라고 요청했습니다. 프로젝트 디렉토리에 README.md를 작성하겠습니다.</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-27-12-906Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-27-12-906Z" class="timestamp-link"><time datetime="2026-01-17T16:27:12.906Z" data-timestamp="2026-01-17T16:27:12.906Z">2026-01-17T16:27:12.906Z</time></a></div><div class="message-content"><div class="file-tool write-tool" data-tool-id="toolu_01YKQpZ7cHDRbS96QwPgBKA9">
+<div class="file-tool-header write-header"><span class="file-tool-icon">📝</span> Write <span class="file-tool-path">README.md</span></div>
+<div class="file-tool-fullpath">/Volumes/HDD/Studies/00_gpters/security-test-app/README.md</div>
+<div class="truncatable"><div class="truncatable-content"><pre class="file-content"># Security Test App
+
+보안 점검 학습/테스트를 위한 취약점이 포함된 Ruby on Rails 웹 애플리케이션입니다.
+
+&gt; **경고**: 이 애플리케이션은 교육 목적으로 의도적으로 보안 취약점을 포함하고 있습니다. 절대로 프로덕션 환경에서 사용하지 마세요.
+
+---
+
+## 기술 스택
+
+| 구분 | 기술 |
+|------|------|
+| Infrastructure | Docker / Docker Compose |
+| Language/Framework | Ruby 3.2 / Rails 7.1 |
+| Database | PostgreSQL 15 |
+| Web Server | Puma |
+
+---
+
+## 기능
+
+- **회원가입**: 새 사용자 등록
+- **로그인/로그아웃**: 세션 기반 인증
+- **회원목록**: 로그인한 사용자만 조회 가능
+
+### 흐름
+
+```
+회원가입 → 로그인 → 회원목록 → 로그아웃
+```
+
+---
+
+## 실행 방법
+
+### 1. Docker Compose로 실행
+
+```bash
+cd security-test-app
+docker-compose up --build
+```
+
+### 2. 접속
+
+브라우저에서 http://localhost:3000 접속
+
+### 3. 테스트 계정
+
+| 구분 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 관리자 | admin@test.com | admin123 |
+| 일반 사용자 | user@test.com | user123 |
+
+### 4. 종료
+
+```bash
+docker-compose down
+```
+
+데이터 초기화가 필요한 경우:
+```bash
+docker-compose down -v
+```
+
+---
+
+## 포함된 취약점
+
+### 1. SQL Injection
+- **위치**: 로그인 (`sessions_controller.rb`)
+- **원인**: 사용자 입력을 직접 SQL 쿼리에 삽입
+- **테스트 방법**:
+  ```
+  Email: &#39; OR &#39;1&#39;=&#39;1&#39; --
+  Password: (아무 값)
+  ```
+
+### 2. XSS (Cross-Site Scripting)
+- **위치**: 회원목록 (`users/index.html.erb`)
+- **원인**: `raw` 헬퍼로 사용자 입력을 이스케이프 없이 출력
+- **테스트 방법**:
+  ```
+  회원가입 시 이름에 입력: &lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;
+  ```
+
+### 3. Mass Assignment
+- **위치**: 회원가입 (`users_controller.rb`)
+- **원인**: `params.permit!`로 모든 파라미터 허용
+- **테스트 방법**:
+  ```bash
+  curl -X POST http://localhost:3000/users \
+    -d &#34;user[email]=hacker@test.com&#34; \
+    -d &#34;user[name]=Hacker&#34; \
+    -d &#34;user[password]=hack123&#34; \
+    -d &#34;user[is_admin]=true&#34;
+  ```
+
+### 4. 평문 비밀번호 저장
+- **위치**: User 모델 및 DB
+- **원인**: bcrypt 미사용, 비밀번호를 암호화 없이 저장
+
+### 5. CSRF 보호 비활성화
+- **위치**: `application_controller.rb`
+- **원인**: `skip_forgery_protection` 설정
+
+### 6. 인증 우회
+- **위치**: `application_controller.rb`
+- **원인**: 쿠키 검증 로직 취약
+- **테스트 방법**: 브라우저 개발자 도구에서 `remember_token` 쿠키 조작
+
+---
+
+## 프로젝트 구조
+
+```
+security-test-app/
+├── Dockerfile
+├── docker-compose.yml
+├── Gemfile
+├── Rakefile
+├── config.ru
+├── entrypoint.sh
+├── README.md
+├── config/
+│   ├── application.rb
+│   ├── boot.rb
+│   ├── environment.rb
+│   ├── database.yml
+│   ├── routes.rb
+│   ├── environments/
+│   │   └── development.rb
+│   └── initializers/
+│       ├── assets.rb
+│       ├── secret_key_base.rb
+│       └── session_store.rb
+├── app/
+│   ├── controllers/
+│   │   ├── application_controller.rb
+│   │   ├── sessions_controller.rb
+│   │   └── users_controller.rb
+│   ├── models/
+│   │   ├── application_record.rb
+│   │   └── user.rb
+│   ├── views/
+│   │   ├── layouts/
+│   │   │   └── application.html.erb
+│   │   ├── sessions/
+│   │   │   └── new.html.erb
+│   │   └── users/
+│   │       ├── new.html.erb
+│   │       └── index.html.erb
+│   └── assets/
+│       ├── config/
+│       │   └── manifest.js
+│       └── stylesheets/
+│           └── application.css
+└── db/
+    ├── migrate/
+    │   └── 20240101000000_create_users.rb
+    └── seeds.rb
+```
+
+---
+
+## 라우팅
+
+| Method | Path | Controller#Action | 설명 |
+|--------|------|-------------------|------|
+| GET | / | sessions#new | 루트 (로그인 페이지) |
+| GET | /signup | users#new | 회원가입 폼 |
+| POST | /users | users#create | 회원가입 처리 |
+| GET | /users | users#index | 회원목록 (로그인 필요) |
+| GET | /login | sessions#new | 로그인 폼 |
+| POST | /login | sessions#create | 로그인 처리 |
+| GET/DELETE | /logout | sessions#destroy | 로그아웃 |
+
+---
+
+## 보안 점검 도구 추천
+
+- **SQL Injection**: sqlmap
+- **XSS**: Burp Suite, OWASP ZAP
+- **전체 스캔**: Nikto, OWASP ZAP
+
+---
+
+## 라이선스
+
+이 프로젝트는 교육 목적으로만 사용해야 합니다.
+</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-01-17T16-27-13-088Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-01-17T16-27-13-088Z" class="timestamp-link"><time datetime="2026-01-17T16:27:13.088Z" data-timestamp="2026-01-17T16:27:13.088Z">2026-01-17T16:27:13.088Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>File created successfully at: /Volumes/HDD/Studies/00_gpters/security-test-app/README.md</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-27-15-817Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-27-15-817Z" class="timestamp-link"><time datetime="2026-01-17T16:27:15.817Z" data-timestamp="2026-01-17T16:27:15.817Z">2026-01-17T16:27:15.817Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div><p>README.md 파일을 작성 완료했습니다. 사용자에게 완료 메시지를 전달하겠습니다.</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-27-19-329Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-27-19-329Z" class="timestamp-link"><time datetime="2026-01-17T16:27:19.329Z" data-timestamp="2026-01-17T16:27:19.329Z">2026-01-17T16:27:19.329Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>README.md 작성 완료했습니다. 포함된 내용:</p>
+<ul>
+<li>기술 스택 (Docker, Rails 7.1, PostgreSQL 15)</li>
+<li>기능 및 흐름 설명</li>
+<li>실행 방법 및 테스트 계정</li>
+<li><strong>취약점 6가지</strong> 상세 설명 및 테스트 방법</li>
+<li>SQL Injection</li>
+<li>XSS (Stored)</li>
+<li>Mass Assignment</li>
+<li>평문 비밀번호</li>
+<li>CSRF 비활성화</li>
+<li>인증 우회</li>
+<li>프로젝트 구조</li>
+<li>라우팅 테이블</li>
+<li>보안 점검 도구 추천</li>
+</ul></div></div></div>
+<div class="message user" id="msg-2026-01-17T16-30-49-367Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-17T16-30-49-367Z" class="timestamp-link"><time datetime="2026-01-17T16:30:49.367Z" data-timestamp="2026-01-17T16:30:49.367Z">2026-01-17T16:30:49.367Z</time></a></div><div class="message-content">
+<div class="user-content"><p>현재 프로젝트에 맞는 .gitignore를 추가해줘 </p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-30-54-533Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-30-54-533Z" class="timestamp-link"><time datetime="2026-01-17T16:30:54.533Z" data-timestamp="2026-01-17T16:30:54.533Z">2026-01-17T16:30:54.533Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div><p>사용자가 현재 Ruby on Rails + Docker 프로젝트에 맞는 .gitignore 파일을 추가해달라고 요청했습니다. Rails 프로젝트에 적합한 .gitignore를 작성하겠습니다.</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-31-01-925Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-31-01-925Z" class="timestamp-link"><time datetime="2026-01-17T16:31:01.925Z" data-timestamp="2026-01-17T16:31:01.925Z">2026-01-17T16:31:01.925Z</time></a></div><div class="message-content"><div class="file-tool write-tool" data-tool-id="toolu_01DLKKBKbR63Ty6NxFSTyJvA">
+<div class="file-tool-header write-header"><span class="file-tool-icon">📝</span> Write <span class="file-tool-path">.gitignore</span></div>
+<div class="file-tool-fullpath">/Volumes/HDD/Studies/00_gpters/security-test-app/.gitignore</div>
+<div class="truncatable"><div class="truncatable-content"><pre class="file-content"># Ruby / Rails
+*.gem
+*.rbc
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+
+# Bundler
+/.bundle/
+/vendor/bundle
+
+# Rails
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/storage/*
+!/storage/.keep
+/public/assets
+.byebug_history
+
+# Environment
+/.env
+/.env.*
+!/.env.example
+
+# Database
+/db/*.sqlite3
+/db/*.sqlite3-*
+
+# Credentials
+/config/master.key
+/config/credentials/*.key
+
+# PID files
+/tmp/pids/*
+!/tmp/pids/.keep
+
+# Cache
+/tmp/cache/*
+!/tmp/cache/.keep
+
+# Docker
+.docker-sync/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node (if using)
+/node_modules/
+/yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# OS
+.DS_Store
+Thumbs.db
+</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-01-17T16-31-02-078Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-01-17T16-31-02-078Z" class="timestamp-link"><time datetime="2026-01-17T16:31:02.078Z" data-timestamp="2026-01-17T16:31:02.078Z">2026-01-17T16:31:02.078Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>File created successfully at: /Volumes/HDD/Studies/00_gpters/security-test-app/.gitignore</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-31-04-886Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-31-04-886Z" class="timestamp-link"><time datetime="2026-01-17T16:31:04.886Z" data-timestamp="2026-01-17T16:31:04.886Z">2026-01-17T16:31:04.886Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div><p>.gitignore 파일을 Rails/Docker 프로젝트에 맞게 작성 완료했습니다.</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-17T16-31-07-277Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-17T16-31-07-277Z" class="timestamp-link"><time datetime="2026-01-17T16:31:07.277Z" data-timestamp="2026-01-17T16:31:07.277Z">2026-01-17T16:31:07.277Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p><code>.gitignore</code> 추가 완료했습니다. 포함된 항목:</p>
+<table>
+<thead>
+<tr>
+<th>카테고리</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rails</strong></td>
+<td>log/, tmp/, storage/, public/assets</td>
+</tr>
+<tr>
+<td><strong>Bundler</strong></td>
+<td>.bundle/, vendor/bundle</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>*.sqlite3 파일들</td>
+</tr>
+<tr>
+<td><strong>Credentials</strong></td>
+<td>master.key, *.key (민감 정보)</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>.env 파일들</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td>.docker-sync/</td>
+</tr>
+<tr>
+<td><strong>IDE/Editor</strong></td>
+<td>.idea/, .vscode/, *.swp</td>
+</tr>
+<tr>
+<td><strong>OS</strong></td>
+<td>.DS_Store, Thumbs.db</td>
+</tr>
+</tbody>
+</table></div></div></div>
         
 
 <div class="pagination">

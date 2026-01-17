@@ -1,4 +1,4 @@
-# Security Test App
+# Security Test App & Skills
 
 보안 점검 학습/테스트를 위한 취약점이 포함된 Ruby on Rails 웹 애플리케이션입니다.
 

