@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/session_export.py",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
